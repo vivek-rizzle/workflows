@@ -27,20 +27,17 @@ jobs:
         token: ${{ secrets.GH_TOKEN }}
 
     - name: Merge master into beta
-      uses: devmasx/merge-branch@master
-      with:
-        type: now
-        from_branch: master
-        target_branch: beta
-        github_token: ${{ secrets.GH_TOKEN }}
-    # - name: Merge master into beta
-    #   run: |
-    #     git checkout master
-    #     git fetch origin
-    #     git checkout beta
-    #     git pull
-    #     git merge --no-commit master || (echo "CONFLICT: Merge conflict detected" && git merge --abort && exit 1)
-    #     git push -u origin beta
+      run: |
+          git fetch origin master beta
+          git checkout beta
+          if git merge --no-commit origin/master; then
+              echo "Merge successful."
+              git commit -m "Merge 'master' into 'beta'" && git push origin beta
+          else
+              echo "Merge failed or no changes detected. Aborting."
+              git merge --abort
+              exit 1
+          fi
 
     - name: Send Slack
       if: ${{ failure() }}
