@@ -1,0 +1,35 @@
+name: "BACK PR Title Check"
+on:
+  workflow_call:
+jobs:
+  check-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tag PR with beta/master label
+        if: "!contains(github.event.pull_request.labels.*.name, 'beta') || !contains(github.event.pull_request.labels.*.name, 'master')" 
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ github.event.pull_request.base.ref }}
+          
+      - name: Check PR title
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const payload = context.payload
+            const prTitle = payload.pull_request.title
+            // The pattern for JIRA ticket format
+            const jiraPattern = /[A-Z]+-\d+/g
+            if (!jiraPattern.test(prTitle)) {
+              console.log('The PR title does not match JIRA ticket format! It should start with BACK-XXX')
+              core.setFailed('PR title does not match JIRA ticket format! It should start with BACK-XXX.')
+            } else {
+              console.log('PR title format is correct.')
+            }
+            
+      - name: Comment PR
+        if: failure()
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Hi @${{ github.actor }}. The PR title does not match JIRA ticket format! It should start with BACK-XXX. Refer to the backend workflow document for more information. 
